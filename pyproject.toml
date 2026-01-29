@@ -1,0 +1,23 @@
+[project]
+name = "yanscloud-service"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "imastarshine",email = "starshine@imastarshine.ru"}
+]
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv (>=1.2.1,<2.0.0)",
+    "yadisk (>=3.4.0,<4.0.0)",
+    "requests (>=2.32.5,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
