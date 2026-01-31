@@ -7,6 +7,7 @@ import curl_cffi
 import soundcloudpy
 from bs4 import BeautifulSoup
 
+from src.logger import logger
 import src.shared
 
 BASE_PAGE = "https://soundloadmate.com/enB13"
@@ -31,7 +32,7 @@ class SC:
         # if src.shared.PROXY_URL and src.shared.PROXY_URL.startswith("socks5://"):
         #     connector = ProxyConnector.from_url(src.shared.PROXY_URL, rdns=True)
         # else:
-        #     print("Continue without download proxy")
+        #     logger.info(f"{sc_url} Continue without download proxy")
         #     connector = None
 
         proxies = {
@@ -50,8 +51,8 @@ class SC:
 
     async def download_track(self, sc_url: str) -> tuple[io.BytesIO, str]:
         try:
-            # Step 1: Get token
-            print("| Step 1 : Getting token")
+            # step 1: Get token
+            logger.info(f"{sc_url} | step 1 : getting token")
             r = await self.download_session.get(BASE_PAGE, timeout=15)
             soup = BeautifulSoup(r.text, 'html.parser')
             form = soup.find('form', {'name': 'formurl'})
@@ -60,8 +61,8 @@ class SC:
             token_name = hidden_input.get('name')
             token_value = hidden_input.get('value')
 
-            # Step 2: Action POST
-            print("| Step 2 : Posting action")
+            # step 2: Action POST
+            logger.info(f"{sc_url} | step 2 : posting action")
             res_action = await self.download_session.post(
                 "https://soundloadmate.com/action",
                 data={'url': sc_url, token_name: token_value},
@@ -78,20 +79,22 @@ class SC:
                 'token': form_track.find('input', {'name': 'token'}).get('value')
             }
 
-            # Step 3: Track POST
-            print("| Step 3 : Posting track")
+            # step 3: Track POST
+            logger.info(f"{sc_url} | step 3 : posting track")
             res_track = await self.download_session.post(
                 "https://soundloadmate.com/action/track",
                 data=payload,
                 headers={'Referer': BASE_PAGE}
             )
 
+            # TODO: fix this? or make warning
+            # ❌ This track is not available (GEO BLOCKED)! Try Sidify SoundCloud Downloader.
             track_data = res_track.json()
             final_soup = BeautifulSoup(track_data['data'], 'html.parser')
             download_link = final_soup.find('a', string=re.compile("Download Mp3")).get('href')
 
-            # Step 4: Download file
-            print("| Step 4 : Downloading file")
+            # step 4: Download file
+            logger.info(f"{sc_url} | step 4 : downloading file")
             res_file = await self.download_session.get(download_link, timeout=60)
             file_content = res_file.content
 
@@ -106,7 +109,7 @@ class SC:
 
             return file_io, filepath
         except Exception as e:
-            print(f"\n! Error on download {sc_url}: {e}")
+            logger.exception(f"exception on download {sc_url}", exc_info=e)
             return None, None
 
 
