@@ -13,10 +13,21 @@ class Database:
         CREATE TABLE IF NOT EXISTS music (
             id INTEGER PRIMARY KEY,
             link TEXT,
+            is_failed INTEGER DEFAULT 0,
             discovered_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """)
+        await self._alter_add_is_failed_column()
         await self.db.commit()
+
+    async def _alter_add_is_failed_column(self):
+        try:
+            await self.db.execute(
+                "ALTER TABLE music ADD COLUMN is_failed INTEGER DEFAULT 0"
+            )
+            await self.db.commit()
+        except aiosqlite.OperationalError:
+            pass
 
     async def is_music_exists(self, link: str):
         async with self.db.execute("SELECT id, link FROM music WHERE link = ?", (link,)) as cursor:
@@ -30,10 +41,10 @@ class Database:
             existing_links = {row[0] for row in rows}
             return existing_links
 
-    async def add_music(self, link: str):
+    async def add_music(self, link: str, is_failed: bool = False):
         await self.db.execute("""
-            INSERT INTO music (link) VALUES (?)
-        """, (link,))
+            INSERT INTO music (link, is_failed) VALUES (?, ?)
+        """, (link, is_failed,))
         await self.db.commit()
 
     async def remove_music(self, link: str):

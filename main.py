@@ -74,64 +74,88 @@ async def main():
     await src.db.database.init()
 
     logger.info("starting main loop")
+    loop_fails = 0
 
     while True:
 
-        tracks = await src.sc.soundcloud.get_tracks()
-        logger.info(f"found {len(tracks)} tracks")
-        permalink_urls = [track.get("permalink_url") for track in tracks]
-        db_tracks = await src.db.database.check_many(permalink_urls)
-        logger.info(f"found {len(db_tracks)} tracks in db")
-        new_tracks = [track for track in tracks if track.get("permalink_url") not in db_tracks]
-        logger.info(f"found {len(new_tracks)} new tracks")
+        try:
+            tracks = await src.sc.soundcloud.get_tracks()
+            logger.info(f"found {len(tracks)} tracks")
+            permalink_urls = [track.get("permalink_url") for track in tracks]
+            db_tracks = await src.db.database.check_many(permalink_urls)
+            logger.info(f"found {len(db_tracks)} tracks in db")
+            new_tracks = [track for track in tracks if track.get("permalink_url") not in db_tracks]
+            logger.info(f"found {len(new_tracks)} new tracks")
 
-        for index, track in enumerate(new_tracks):
-            permalink = track.get("permalink_url")
+            for index, track in enumerate(new_tracks):
+                permalink = track.get("permalink_url")
 
-            # await send_with(telegram, Text(
-            #     BlockQuote("[yanscloud_service] 🔎"),
-            #     BlockQuote(f"🖋️ | Found new track ({index}/{len(new_tracks)})\n"
-            #                f"🏷️ | {track.get('title')}\n"
-            #                f"🔗 | {permalink}"),
-            # ))
+                # await send_with(telegram, Text(
+                #     BlockQuote("[yanscloud_service] 🔎"),
+                #     BlockQuote(f"🖋️ | Found new track ({index}/{len(new_tracks)})\n"
+                #                f"🏷️ | {track.get('title')}\n"
+                #                f"🔗 | {permalink}"),
+                # ))
 
-            if not permalink:
-                continue
+                if not permalink:
+                    continue
 
-            logger.info(f"downloading {permalink} | {index}/{len(new_tracks)}")
-            file, path = await src.sc.soundcloud.download_track(permalink)
+                logger.info(f"downloading {permalink} | {index}/{len(new_tracks)}")
+                file, path = await src.sc.soundcloud.download_track(permalink)
 
-            if path is None:
-                logger.error(f"failed to download {permalink}. {path=}")
-                continue
+                if path is None:
+                    logger.error(f"failed to download {permalink}. {path=}")
+                    if path == "failed download":
+                        path = "failed to download, maybe this track is geo blocked"
+                    await send_with(telegram, Text(
+                        BlockQuote("[yanscloud_service] ⚠️"),
+                        BlockQuote(f"🖋️ | Failed to download track ({index}/{len(new_tracks)}). "
+                                   f"This track will be ignored on next scanning\n"
+                                   f"🏷️ | {track.get('title')}\n"
+                                   f"🔗 | {permalink}\n"
+                                   f"⚠️ | {path}")
+                    ))
+                    await src.db.database.add_music(permalink, is_failed=True)
+                    continue
 
-            logger.info(f"downloaded {permalink}. uploading")
+                logger.info(f"downloaded {permalink}. uploading")
 
-            if not await src.ydisk.disk.check():
-                logger.critical("Yandex.Disk is not available. Locking script")
+                if not await src.ydisk.disk.check():
+                    logger.critical("Yandex.Disk is not available. Locking script")
+                    await send_with(telegram, Text(
+                        BlockQuote("[yanscloud_service] 🚫"),
+                        BlockQuote("🖋️ | Yandex.Disk is not available. Locking script"),
+                    ))
+                    lock_script()
+                    exit(63)
+
+                await src.ydisk.disk.upload(file, path)
+                logger.info(f"uploaded {permalink} - {path}")
+
                 await send_with(telegram, Text(
-                    BlockQuote("[yanscloud_service] 🚫"),
-                    BlockQuote("🖋️ | Yandex.Disk is not available. Locking script"),
+                    BlockQuote("[yanscloud_service] 📥"),
+                    BlockQuote(f"🖋️ | Downloaded track ({index}/{len(new_tracks)})\n"
+                               f"🏷️ | {track.get('title')}\n"
+                               f"📁 | {path}\n"
+                               f"🔗 | {permalink}"),
                 ))
+
+                await src.db.database.add_music(permalink)
+                await asyncio.sleep(6)
+
+            await asyncio.sleep(900)
+        except Exception as e:
+            loop_fails += 1
+            logger.exception("an exception occurred on run loop", exc_info=e)
+            if loop_fails > 15:
+                if telegram:
+                    await telegram.send_log(Text(
+                        BlockQuote("[yanscloud_service] 😱"),
+                        BlockQuote("🖋️ | An more than 15 times exception occurred on main loop. Locking script"),
+                    ))
                 lock_script()
-                exit(63)
 
-            await src.ydisk.disk.upload(file, path)
-            logger.info(f"uploaded {permalink} - {path}")
-
-            await send_with(telegram, Text(
-                BlockQuote("[yanscloud_service] 📥"),
-                BlockQuote(f"🖋️ | Downloaded track ({index}/{len(new_tracks)})\n"
-                           f"🏷️ | {track.get('title')}\n"
-                           f"📁 | {path}\n"
-                           f"🔗 | {permalink}"),
-            ))
-
-            await src.db.database.add_music(permalink)
-            await asyncio.sleep(6)
-
-        await asyncio.sleep(900)
-
+            await asyncio.sleep(60)
 
 if __name__ == "__main__":
     asyncio.run(main())

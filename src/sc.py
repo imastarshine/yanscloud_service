@@ -35,12 +35,14 @@ class SC:
         #     logger.info(f"{sc_url} Continue without download proxy")
         #     connector = None
 
-        proxies = {
-            "http": src.shared.PROXY_URL,
-            "https": src.shared.PROXY_URL
-        }
-
-        self.download_session = curl_cffi.AsyncSession(impersonate="chrome142", proxies=proxies)
+        if src.shared.PROXY_URL.startswith("socks5://") or src.shared.PROXY_URL.startswith("socks5h://"):
+            proxies = {
+                "http": src.shared.PROXY_URL,
+                "https": src.shared.PROXY_URL
+            }
+            self.download_session = curl_cffi.AsyncSession(impersonate="chrome142", proxies=proxies)
+        else:
+            self.download_session = curl_cffi.AsyncSession(impersonate="chrome142")
 
     async def get_tracks(self) -> list[dict]:
         return [item async for item in self.api.get_track_details_liked(self.me["id"])]
@@ -87,9 +89,11 @@ class SC:
                 headers={'Referer': BASE_PAGE}
             )
 
-            # TODO: fix this? or make warning
-            # ❌ This track is not available (GEO BLOCKED)! Try Sidify SoundCloud Downloader.
             track_data = res_track.json()
+
+            if 'data' not in track_data:
+                return None, "failed download"
+
             final_soup = BeautifulSoup(track_data['data'], 'html.parser')
             download_link = final_soup.find('a', string=re.compile("Download Mp3")).get('href')
 
