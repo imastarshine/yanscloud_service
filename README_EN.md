@@ -1,7 +1,5 @@
 # yanscloud_service ☁️
 
-[English version](README_EN.md)
-
 * This project automatically downloads your music from Soundcloud to your Yandex Disk cloud storage.
 
 The script monitors your Soundcloud account for new tracks. Once it finds a song that is not yet in the project's database, it downloads it and uploads it to your Yandex Disk.
