@@ -1,5 +1,6 @@
 import os
 import asyncio
+import sys
 
 
 if __name__ == '__main__':
@@ -7,4 +8,11 @@ if __name__ == '__main__':
         exit(1)
 
     import main
-    asyncio.run(main.main())
+
+    try:
+        asyncio.run(main.main())
+    except Exception as e:
+        print(f"An critical error occurred: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        sys.exit(0)

@@ -103,7 +103,7 @@ async def main():
                 logger.info(f"downloading {permalink} | {index}/{len(new_tracks)}")
                 file, path = await src.sc.soundcloud.download_track(permalink)
 
-                if path is None:
+                if path is None or path == "failed download":
                     logger.error(f"failed to download {permalink}. {path=}")
                     if path == "failed download":
                         path = "failed to download, maybe this track is geo blocked"
