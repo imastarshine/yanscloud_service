@@ -19,7 +19,7 @@ class YDisk:
 
     async def upload(self, file: io.BytesIO, path: str):
         if not path.startswith("app:/"):
-            raise Exception("Invalid path. Must start with \"app:/\"")
+            raise Exception(f"Invalid path. Must start with app:/. Got: {path}")
 
         await self.client.upload(file, path)
 

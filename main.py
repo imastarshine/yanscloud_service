@@ -118,7 +118,7 @@ async def main():
                     await src.db.database.add_music(permalink, is_failed=True)
                     continue
 
-                logger.info(f"downloaded {permalink}. uploading to {path}")
+                logger.info(f"downloaded {permalink}. uploading to {path} ({type(file)})")
 
                 if not await src.ydisk.disk.check():
                     logger.critical("Yandex.Disk is not available. Locking script")
