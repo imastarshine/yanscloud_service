@@ -129,7 +129,10 @@ async def main():
                     lock_script()
                     exit(63)
 
-                await src.ydisk.disk.upload(file, path)
+                try:
+                    await src.ydisk.disk.upload(file, path)
+                except yadisk.exceptions.PathExistsError:
+                    pass
                 logger.info(f"uploaded {permalink} - {path}")
 
                 await send_with(telegram, Text(
