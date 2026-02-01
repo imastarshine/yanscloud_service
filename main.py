@@ -147,7 +147,7 @@ async def main():
         except Exception as e:
             loop_fails += 1
             logger.exception("an exception occurred on run loop", exc_info=e)
-            if loop_fails > 15:
+            if loop_fails > 35:
                 if telegram:
                     await telegram.send_log(Text(
                         BlockQuote("[yanscloud_service] 😱"),
