@@ -1,5 +1,7 @@
 # yanscloud_service ☁️
 
+[Русская версия](README.md)
+
 * This project automatically downloads your music from Soundcloud to your Yandex Disk cloud storage.
 
 The script monitors your Soundcloud account for new tracks. Once it finds a song that is not yet in the project's database, it downloads it and uploads it to your Yandex Disk.
@@ -50,8 +52,6 @@ If you want to receive notifications via Telegram:
 3. Enable: `Show Peer IDs in Profile`.
 4. Now go to your own profile and copy your ID.
 
-
-
 ---
 
 ## Environment Setup ⚙️
@@ -70,8 +70,6 @@ cp .env-example .env
 ```powershell
 copy .env-example .env
 ```
-
-
 
 ### Filling out .env
 
@@ -107,12 +105,12 @@ poetry install
 
 ### 2. Running the Script
 
-The project must be launched specifically via the `launch.py` file. You can do this in two ways:
+The project must be launched specifically via the `main.py` file. You can do this in two ways:
 
 **Method 1 (via poetry environment):**
 
 ```bash
-poetry run python launch.py
+poetry run python main.py
 ```
 
 **Method 2 (activating the shell and running):**
@@ -120,5 +118,51 @@ poetry run python launch.py
 * **Linux / macOS / Windows:**
 ```bash
 poetry shell
-python launch.py
+python main.py
+```
+
+### 3. Autostart Configuration
+
+1. **Create the service file:**
+```bash
+sudo nano /etc/systemd/system/yanscloud.service
+```
+
+2. **Paste the following configuration:**
+   *(Replace `<USER>` with your username and `<PATH>` with the absolute path to the project folder)*
+```ini
+[Unit]
+Description=Yanscloud Service
+After=network.target
+StartLimitIntervalSec=360
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=<USER>
+WorkingDirectory=<PATH>
+# Ensure the path to venv and main.py is correct
+ExecStart=<PATH>/.venv/bin/python <PATH>/main.py
+Restart=on-failure
+RestartSec=60
+RestartPreventExitStatus=45 46 47 48
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3. **Permissions Setup (skip if using root):**
+```bash
+# Replace <USER> and <PATH> with your values
+sudo chown -R <USER>:<USER> <PATH>
+```
+
+4. **Service Activation:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable yanscloud.service
+sudo systemctl start yanscloud.service
+
+# Check real-time logs:
+sudo journalctl -u yanscloud.service -f -e
 ```

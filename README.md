@@ -42,16 +42,6 @@
 3. Вы получите токен в формате `123456789:ABCdefGhIJKlmNoPQRstuVWxYz`.
 4. Не забудьте отправить боту `/start` иначе он не сможет отправлять вам сообщения.
 
-Вот дополнение для раздела про Telegram бота:
-
-### 3. Telegram бот
-
-Если вы хотите получать уведомления:
-
-1. Напишите боту [@BotFather](https://t.me/BotFather) в Telegram.
-2. Используйте команду `/newbot` и следуйте инструкциям.
-3. Вы получите токен в формате `123456789:ABCdefGhIJKlmNoPQRstuVWxYz`.
-
 **Как получить ваш TELEGRAM_CHAT_ID (User ID):**
 
 * **Через специального бота:**
@@ -80,8 +70,6 @@ cp .env-example .env
 ```powershell
 copy .env-example .env
 ```
-
-
 
 ### Заполнение .env
 
@@ -117,12 +105,12 @@ poetry install
 
 ### 2. Запуск скрипта
 
-Запуск проекта осуществляется строго через файл `launch.py`. Вы можете сделать это двумя способами:
+Запуск проекта осуществляется строго через файл `main.py`. Вы можете сделать это двумя способами:
 
 **Способ 1 (через окружение poetry):**
 
 ```bash
-poetry run python launch.py
+poetry run python main.py
 ```
 
 **Способ 2 (активация оболочки и запуск):**
@@ -130,5 +118,51 @@ poetry run python launch.py
 * **Linux / macOS / Windows:**
 ```bash
 poetry shell
-python launch.py
+python main.py
+```
+
+### 3. Автозапуск скрипта
+
+1. **Создайте файл службы:**
+```bash
+sudo nano /etc/systemd/system/yanscloud.service
+```
+
+2. **Вставьте следующее содержимое:**
+   *(Замените `<USER>` на ваше имя пользователя, а `<PATH>` на полный путь к папке проекта)*
+```ini
+[Unit]
+Description=Yanscloud Service
+After=network.target
+StartLimitIntervalSec=360
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=<USER>
+WorkingDirectory=<PATH>
+# Убедитесь, что путь к venv и main.py указан верно
+ExecStart=<PATH>/.venv/bin/python <PATH>/main.py
+Restart=on-failure
+RestartSec=60
+RestartPreventExitStatus=45 46 47 48
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3. **Настройка прав доступа (пропустите, если используете root):**
+```bash
+# Замените <USER> и <PATH> на ваши значения
+sudo chown -R <USER>:<USER> <PATH>
+```
+
+4. **Активация службы:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable yanscloud.service
+sudo systemctl start yanscloud.service
+
+# Просмотр логов в реальном времени:
+sudo journalctl -u yanscloud.service -f -e
 ```

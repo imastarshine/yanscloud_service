@@ -16,7 +16,12 @@ def cleanup_old_logs(days=7):
 
 os.makedirs("logs", exist_ok=True)
 
-logger_handler = logging.FileHandler(f"logs/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log", "a", encoding="utf-8")
+logger_handler = logging.FileHandler(
+    f"logs/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log",
+    "a",
+    encoding="utf-8",
+    delay=True
+)
 logger_handler.setLevel(logging.INFO)
 logger_handler.setFormatter(
     logging.Formatter("%(asctime)s [%(levelname)s] (%(filename)s:%(lineno)d - %(funcName)s) | %(message)s"))
