@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 import aiogram.utils.formatting
 from aiogram.utils.formatting import Text, BlockQuote
@@ -16,6 +17,8 @@ from src.logger import cleanup_old_logs, logger
 from src.classes import ExitCode
 
 PROVIDER = "SoundCloud"
+
+track_hits: dict[str, int] = {}
 
 
 def lock_script():
@@ -113,18 +116,26 @@ async def main():
         try:
             # TODO: Add "Track" class and use it here
             tracks = await src.sc.soundcloud.get_tracks()
-            logger.info(f"found {len(tracks)} tracks")
             permalink_urls = [track.get("permalink_url") for track in tracks]
             db_tracks = await src.db.database.check_many(permalink_urls)
-            logger.info(f"found {len(db_tracks)} tracks in db")
             new_tracks = [track for track in tracks if track.get("permalink_url") not in db_tracks]
-            logger.info(f"found {len(new_tracks)} new tracks")
+
+            if len(new_tracks) > 0:
+                logger.info(f"found {len(new_tracks)} new tracks")
 
             for index, track in enumerate(new_tracks):
                 permalink = track.get("permalink_url")
 
                 if not permalink:
                     continue
+
+                hits_count = track_hits.get(permalink, 0)
+                if hits_count < src.shared.MIN_TRACK_HITS_TO_DOWNLOAD:
+                    logger.info(f"track {permalink} does not have enough hits to be downloaded."
+                                f" hits_count: {hits_count + 1}/{src.shared.MIN_TRACK_HITS_TO_DOWNLOAD}")
+                    track_hits[permalink] = hits_count + 1
+                    continue
+                track_hits[permalink] = None
 
                 logger.info(f"downloading {permalink} | {index + 1}/{len(new_tracks)}")
                 file, path = await src.sc.soundcloud.download_track(permalink)
@@ -133,6 +144,7 @@ async def main():
                     logger.error(f"failed to download {permalink}. {path=}")
                     if path == "failed download":
                         path = "failed to download, maybe this track is geo blocked"
+
                     await send_with(telegram, Text(
                         BlockQuote("[yanscloud_service] ⚠️"),
                         BlockQuote(f"🖋️ | Failed to download track ({index + 1}/{len(new_tracks)}). "
@@ -162,16 +174,22 @@ async def main():
 
                 await send_with(telegram, Text(
                     BlockQuote("[yanscloud_service] 📥"),
-                    BlockQuote(f"🖋️ | Downloaded track ({index}/{len(new_tracks)})\n"
+                    BlockQuote(f"🖋️ | Downloaded track ({index + 1}/{len(new_tracks)})\n"
                                f"🏷️ | {track.get('title')}\n"
                                f"📁 | {path}\n"
                                f"🔗 | {permalink}"),
                 ))
 
                 await src.db.database.add_music(permalink, track.get('title'), path.removeprefix("app:/soundcloud/"), False)
-                await asyncio.sleep(6)
+                await asyncio.sleep(random.uniform(5, 8))
 
-            await asyncio.sleep(900)
+            await asyncio.sleep(random.uniform(880, 960))
+        except KeyboardInterrupt:
+            break
+        except SystemExit:
+            break
+        except asyncio.exceptions.CancelledError:
+            break
         except Exception as e:
             loop_fails += 1
             logger.exception("an exception occurred on run loop", exc_info=e)
@@ -183,7 +201,7 @@ async def main():
                     ))
                 lock_script()
 
-            await asyncio.sleep(25)
+        await asyncio.sleep(25)
 
 if __name__ == "__main__":
     asyncio.run(main())

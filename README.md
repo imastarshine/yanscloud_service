@@ -82,6 +82,10 @@ CLIENT_ID="ваш_client_id_soundcloud"
 PROXY_URL="socks5h://user:pass@ip:port"
 TELEGRAM_TOKEN="ваш_токен_бота"
 TELEGRAM_CHAT_ID=0
+# Минимальное количество раз, которое трек должен появиться в ответе API, чтобы запустилось скачивание.
+MIN_TRACK_HITS_TO_DOWNLOAD=3
+DOWNLOAD_TIMEOUT_RETRY=3
+DOWNLOAD_TIMEOUT=180
 ```
 
 **Важные примечания:**

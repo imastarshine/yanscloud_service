@@ -82,6 +82,10 @@ CLIENT_ID="your_soundcloud_client_id"
 PROXY_URL="socks5h://user:pass@ip:port"
 TELEGRAM_TOKEN="your_bot_token"
 TELEGRAM_CHAT_ID=0
+# Minimum number of times a track must appear in API response to trigger download
+MIN_TRACK_HITS_TO_DOWNLOAD=3
+DOWNLOAD_TIMEOUT_RETRY=3
+DOWNLOAD_TIMEOUT=180
 ```
 
 **Important Notes:**
